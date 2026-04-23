@@ -3,12 +3,8 @@
 
 # 能力 (kit) 一覧
 
-全 23 種。選択は `/kit` コマンド (または `/kit list` で一覧、`/kit <id>` で直接選択)。
+全 26 種。選択は `/kit` コマンド (または `/kit list` で一覧、`/kit <id>` で直接選択)。
 能力専用の装備には `[system]` タグが付き、死亡時にドロップしません。
-
-> **対象 API**: Paper `26.1.2` 以降。`IRON_SPEAR` / `COPPER_*` 等の新規 Material が使用可能なため、
-> 旧代替 (例: Netherite Hoe で槍を表現する等) は不要。
-> 現状で Paper 26.1.2 固有のアイテムを使っているのは **槍兵 (Lancer)** の `IRON_SPEAR` のみ。
 
 ## 能力早見表
 
@@ -37,6 +33,11 @@
 | 極 -LastManStanding- | `lastmanstanding` | 2 | SKELETON_SKULL | 装備なし / 弓矢命中で即死級 |
 | 葬儀屋 -Mortician- | `mortician` | 20 | BONE | キル時に遺体位置にチェスト生成、周囲ドロップを格納 |
 | 溶岩鶏 -LavaChicken- | `lavachicken` | 20 | LAVA_BUCKET | マグマバケツ×3 / 卵×10スタック / 恒常 SLOW_FALLING |
+| 導矢 -Homing- | `homing` | 16 | ARROW | 発射した矢が重力無視で射手の視線方向に追従 (10秒) |
+| 月詠 -Tsukuyomi- | `tsukuyomi` | 16 | PHANTOM_MEMBRANE | 1秒視線中心で捉えた対象だけに偽の夜 + BLINDNESS (5秒 / CD 60s) |
+| 鏡像壁 -MirrorWall- | `mirrorwall` | 18 | TINTED_GLASS | 前方 2m に 3×3 偽ガラスで飛び道具反射 (4秒 / CD 30s) |
+
+> **封印中 (ProtocolLib 対応待ち)**: 影分身 (shadowclone) / 幻像 (illusion) — クラスは残っているが `KitRegistry` の登録をコメントアウトしている。
 
 ---
 
@@ -213,6 +214,44 @@
   - 弾幕 — 卵を大量に投げて視界と足場を乱す (稀に雛が出る)
 - **補足**: Minecraft 映画の『Lava Chicken』モチーフ。武器/防具は無く、熔岩と卵で戦う変則型
 
+### 導矢 -Homing-
+- **id**: `homing`
+- **HP**: 16
+- **装備**: 素弓 / 木剣 / 矢×24 / 革一式 / パン×4
+- **発動**: 弓を右クリで射撃
+- **能力**: 導矢 — 発射した矢は **重力無視** + 毎 tick **射手の視線方向** に完全同期して velocity を更新
+- **制約**:
+  - 発射速度 0.55 倍 (通常弓より遅く、避けやすい)
+  - 追尾中の巡航速度 0.9 block/tick 固定
+  - 矢のダメージは 0.5 倍 (素弓基礎 2.0 → 1.0)
+  - 命中 / ブロック接触 / 10 秒経過で追尾解除
+  - 射手が視線を動かせば矢も追従する (敵ロック不要)
+
+### 月詠 -Tsukuyomi-
+- **id**: `tsukuyomi`
+- **HP**: 16
+- **装備**: 鉄剣 / 革一式 / ファントムの膜 / パン×4
+- **能力**: 月詠 — 右クリでロック開始。1 秒 (20 tick) 視線中心 (cos 0.92 / 30m) に対象を捉え続けると発動 → `setPlayerTime(18000, false)` で対象だけに偽の夜 + BLINDNESS 5 秒
+- **制約**: ロック最長 4 秒でタイムアウト / CD 60 秒
+
+### 鏡像壁 -MirrorWall-
+- **id**: `mirrorwall`
+- **HP**: 18
+- **装備**: 鉄剣 / 革一式 / 黒色ガラス / パン×4
+- **能力**: 鏡像壁 — 右クリで前方 2m に 3×3 の TINTED_GLASS を **実ブロック** で設置。矢/トライデント等を完全遮断する物理的な壁
+- **制約**: 設置先が空気でないと失敗 / 4 秒で自動消滅 (air に戻る) / CD 30 秒
+
+### 影分身 -Shadowclone- §8(封印中)
+- **id**: `shadowclone`
+- **HP**: 18
+- **状態**: `KitRegistry` で登録コメントアウト (Paper 26.1.2 対応版 ProtocolLib 待ち)
+- クラス・リスナーは残置しているので、ProtocolLib 対応次第で 1 行復活で有効化可能
+
+### 幻像 -Illusion- §8(封印中)
+- **id**: `illusion`
+- **HP**: 16
+- **状態**: Shadowclone と同じ理由で登録コメントアウト。Session/反撃ロジックは残置
+
 ---
 
 ## カスタムレシピ
@@ -222,7 +261,12 @@
 | レシピ ID | 型 | 材料 | 結果 |
 |---|---|---|---|
 | `hungergames:cheap_arrow` | Shaped | 火打ち石(上) + 棒(下) | 矢 ×2 |
-| `hungergames:kelp_bow` | Shaped | 棒 + 昆布 (バニラ弓と同じ対角線配置) | 弓 |
 | `hungergames:food_bowl_heal` | Shapeless | 食べ物 1 種 + 木の皿 (BOWL) | 民間治療薬 (HEALING Potion) |
 
 `food_bowl_heal` の食べ物は `MaterialChoice` で列挙している: BREAD / APPLE / 各種肉 (生・調理済み) / 魚 / 野菜 / 果実 / GOLDEN_APPLE / HONEY_BOTTLE など。
+
+## MobLoot (動物ドロップ)
+
+- 生肉は自動で焼肉版に置換 (`BEEF→COOKED_BEEF` 等)
+- **動物 (`Animals` 系: 牛/豚/羊/鶏/ウサギ等) を倒すと 0〜2 本の糸を追加ドロップ** (バニラ弓のクラフト材料を入手可能に)
+- ゾンビ等モンスターは対象外
