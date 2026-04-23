@@ -1,0 +1,2 @@
+# HUNGERGAMES-SYS
+なんかそういうの
